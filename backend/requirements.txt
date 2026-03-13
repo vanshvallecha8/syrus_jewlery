@@ -1,0 +1,6 @@
+# JewelForge AI — Backend Dependencies
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9   # required for UploadFile
+pydantic>=2.7.0
+anthropic>=0.25.0          # Claude Vision SDK — set ANTHROPIC_API_KEY to enable /analyze

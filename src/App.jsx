@@ -1,9 +1,79 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense, Component } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Environment, OrbitControls, ContactShadows } from "@react-three/drei";
+import {
+  Environment,
+  OrbitControls,
+  ContactShadows,
+  useGLTF,
+  Center,
+  Bounds,
+} from "@react-three/drei";
 import UploadScreen from "./screens/UploadScreen";
 import BlueprintScreen from "./screens/BlueprintScreen";
 import ConfiguratorScreen from "./screens/ConfiguratorScreen";
+
+/**
+ * Error boundary that catches GLB load failures and reports them via `onError`.
+ * Give it `key={modelUrl}` so it automatically resets when the URL changes.
+ */
+class ModelErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidUpdate(prevProps) {
+    // Reset error state when the URL changes (key-prop change also works,
+    // but this guards against same-URL retries).
+    if (prevProps.url !== this.props.url && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  componentDidCatch(error) {
+    this.props.onError(error);
+  }
+
+  render() {
+    if (this.state.hasError) return <PlaceholderRing />;
+    return this.props.children;
+  }
+}
+
+/**
+ * Loads a GLB from `url` (local public/ path or backend-returned URL).
+ * Must be wrapped in Suspense — useGLTF suspends while fetching.
+ * Errors are caught by the surrounding ModelErrorBoundary.
+ */
+function RingModel({ url }) {
+  const { scene } = useGLTF(url);
+  return (
+    <Bounds fit clip observe margin={1.4}>
+      <Center>
+        <primitive object={scene} />
+      </Center>
+    </Bounds>
+  );
+}
+
+/** Decorative torus-knot shown on Upload / Blueprint screens and as fallback. */
+function PlaceholderRing() {
+  return (
+    <mesh castShadow receiveShadow rotation={[0.4, 0.6, 0]}>
+      <torusKnotGeometry args={[0.55, 0.18, 256, 64]} />
+      <meshStandardMaterial
+        color="#C9973A"
+        metalness={0.9}
+        roughness={0.18}
+        envMapIntensity={1}
+      />
+    </mesh>
+  );
+}
 
 const SCREENS = {
   upload: "upload",
@@ -16,6 +86,7 @@ export default function App() {
   const [uploadedImage, setUploadedImage] = useState(null);
   const [blueprint, setBlueprint] = useState(null);
   const [modelUrl, setModelUrl] = useState(null);
+  const [modelError, setModelError] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState({
     metal: "18k_gold",
     stone: "diamond_round",
@@ -50,8 +121,13 @@ export default function App() {
 
   /** Step 2 → 3: stub backend 3D generation, advance to configurator */
   const handleGenerate3D = async () => {
-    // TODO: call backend to generate GLB and store the URL
-    setModelUrl("/placeholder-ring.glb");
+    // TODO: replace with real backend call, e.g.:
+    //   const res = await fetch("/generate", { method: "POST", ... });
+    //   const { glb_url } = await res.json();
+    //   setModelUrl(glb_url);
+    //
+    // Default to the local public/ring.glb for demo purposes.
+    setModelUrl("/ring.glb");
     setScreen(SCREENS.configurator);
   };
 
@@ -65,17 +141,7 @@ export default function App() {
 
       {/* Full-screen 3D canvas — lives behind all UI */}
       <div className="absolute inset-0 -z-10">
-        <Canvas shadows camera={{ position: [0, 1.2, 3.2], fov: 40 }}>
-          {/* Placeholder torus knot until a real GLB is loaded */}
-          <mesh castShadow receiveShadow rotation={[0.4, 0.6, 0]}>
-            <torusKnotGeometry args={[0.55, 0.18, 256, 64]} />
-            <meshStandardMaterial
-              color="#C9973A"
-              metalness={0.9}
-              roughness={0.18}
-              envMapIntensity={1}
-            />
-          </mesh>
+        <Canvas shadows camera={{ position: [0, 1.2, 3.2], fov: 40 }} dpr={[1, 2]}>
           <Environment preset="studio" />
           <ContactShadows
             opacity={0.35}
@@ -89,6 +155,19 @@ export default function App() {
             minPolarAngle={Math.PI / 3}
             maxPolarAngle={(2 * Math.PI) / 3}
           />
+          <Suspense fallback={<PlaceholderRing />}>
+            {screen === SCREENS.configurator && modelUrl ? (
+              <ModelErrorBoundary
+                key={modelUrl}
+                url={modelUrl}
+                onError={() => setModelError(true)}
+              >
+                <RingModel url={modelUrl} />
+              </ModelErrorBoundary>
+            ) : (
+              <PlaceholderRing />
+            )}
+          </Suspense>
         </Canvas>
       </div>
 
@@ -109,6 +188,7 @@ export default function App() {
       {screen === SCREENS.configurator && (
         <ConfiguratorScreen
           modelUrl={modelUrl}
+          modelError={modelError}
           selectedOptions={selectedOptions}
           onChangeOptions={setSelectedOptions}
           estimatedBudget={estimatedBudget}
