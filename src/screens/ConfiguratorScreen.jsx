@@ -6,13 +6,16 @@ import MaterialSelector from "../components/MaterialSelector";
  * floating glass panels for material customisation and budget display.
  *
  * Props:
- *  - modelUrl: string (GLB URL, may be null while placeholder is shown)
+ *  - modelUrl: string|null  — GLB URL loaded from backend (or /ring.glb locally)
+ *  - modelError: boolean    — true when the GLB failed to load
  *  - selectedOptions: { metal, stone, cut }
  *  - onChangeOptions(opts): merge-update selected options
  *  - estimatedBudget: number (USD)
  *  - onRestart(): return to UploadScreen
  */
 export default function ConfiguratorScreen({
+  modelUrl,
+  modelError,
   selectedOptions,
   onChangeOptions,
   estimatedBudget,
@@ -111,11 +114,21 @@ export default function ConfiguratorScreen({
         </div>
       </aside>
 
-      {/* Centre label (hint while placeholder is shown) */}
+      {/* Centre status — loading / error / orbit hint */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 text-center pointer-events-none">
-        <p className="text-sand/30 text-xs tracking-widest uppercase">
-          Drag to orbit · Scroll to zoom
-        </p>
+        {modelError ? (
+          <p className="text-red-400/70 text-xs tracking-widest uppercase">
+            ⚠ Could not load model — place ring.glb in public/
+          </p>
+        ) : !modelUrl ? (
+          <p className="text-sand/30 text-xs tracking-widest uppercase animate-pulse">
+            Loading model…
+          </p>
+        ) : (
+          <p className="text-sand/30 text-xs tracking-widest uppercase">
+            Drag to orbit · Scroll to zoom
+          </p>
+        )}
       </div>
     </div>
   );
