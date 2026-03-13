@@ -1,0 +1,42 @@
+@import url("https://fonts.googleapis.com/css2?family=Tenor+Sans&family=Jost:wght@300;400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background-color: #080810;
+}
+
+body {
+  @apply bg-ink text-sand font-body antialiased min-h-screen;
+}
+
+/* ─── Glassmorphism panel ─────────────────────────────────────────── */
+.glass {
+  @apply bg-glass border border-white/10 rounded-2xl backdrop-blur-glass shadow-panel;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────── */
+.button-gold {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full
+         bg-gradient-to-r from-gold/90 to-gold text-ink font-semibold
+         shadow-glow hover:brightness-110 transition-all duration-200;
+}
+
+.button-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full
+         border border-white/20 text-sand hover:border-gold hover:text-gold
+         transition-all duration-200;
+}
+
+/* ─── Typography ──────────────────────────────────────────────────── */
+.panel-title {
+  @apply font-heading text-xl tracking-wide text-sand/90;
+}
+
+/* ─── Animations ──────────────────────────────────────────────────── */
+.fade-in {
+  @apply animate-fadeIn;
+}
